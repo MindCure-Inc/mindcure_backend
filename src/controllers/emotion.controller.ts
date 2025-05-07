@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { getAuth } from "@clerk/express";
 import { prisma } from "../lib/prisma";
-import { MoodType } from "@prisma/client";
+import { MoodType } from '../generated/prisma'
 
 // CREATE
 export const createEmotion = async (req: Request, res: Response) => {
