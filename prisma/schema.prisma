@@ -1,0 +1,296 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  patient
+  therapist
+  admin
+}
+
+enum MessageStatus {
+  pending
+  sent
+  delivered
+  read
+}
+
+enum CallType {
+  video
+  voice
+}
+
+enum NotificationType {
+  message
+  session_reminder
+  group_update
+}
+
+enum MoodType {
+  happy
+  sad
+  anxious
+  calm
+  angry
+  neutral
+}
+
+enum VerificationStatus {
+  pending
+  verified
+  rejected
+}
+
+// Models
+model Profile {
+  id         String    @id @default(uuid())
+  externalId String    @unique
+  role       UserRole
+  fullName   String
+  email      String
+  avatarUrl  String?
+  phone      String?
+  bio        String?
+  timezone   String    @default("UTC")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  therapistDetails          TherapistDetail?
+  journalEntries            JournalEntry[]
+  messagesSent              Message[]          @relation("MessagesSent")
+  messagesReceived          Message[]          @relation("MessagesReceived")
+  groupChats                GroupChat[]        @relation("CreatedGroups")
+  groupMemberships          GroupMember[]
+  groupMessages             ChatMessage[]
+  aiChats                   AIChat[]
+  sessionsAsTherapist       Session[]          @relation("TherapistSessions")
+  sessionsAsPatient         Session[]          @relation("PatientSessions")
+  callLogsAsCaller          CallLog[]          @relation("CallerLogs")
+  callLogsAsReceiver        CallLog[]          @relation("ReceiverLogs")
+  notifications             Notification[]
+  scheduledMessagesSent     ScheduledMessage[] @relation("ScheduledSent")
+  scheduledMessagesReceived ScheduledMessage[] @relation("ScheduledReceived")
+  emotionTrackings          EmotionTracking[]
+  journalEntriesAsPatient   JournalEntry[]     @relation("JournalPatient")
+  journalEntriesAsTherapist JournalEntry[]     @relation("JournalTherapist")
+  wallet                    Wallet?
+}
+
+model TherapistDetail {
+  id                 String             @id @default(uuid())
+  profile            Profile            @relation(fields: [profileId], references: [id])
+  profileId          String             @unique
+  specialties        String[]
+  certifications     String[]
+  yearsExperience    Int                @default(0)
+  verificationStatus VerificationStatus @default(pending)
+  hourlyRate         Decimal?
+  availableHours     Json?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  deletedAt          DateTime?
+}
+
+model JournalEntry {
+  id                  String    @id @default(uuid())
+  patient             Profile   @relation("JournalPatient", fields: [patientId], references: [id])
+  patientId           String
+  title               String
+  content             String
+  mood                MoodType?
+  tags                String[]
+  sharedWithTherapist Boolean   @default(false)
+  therapist           Profile?  @relation("JournalTherapist", fields: [therapistId], references: [id])
+  therapistId         String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  deletedAt           DateTime?
+  Profile             Profile?  @relation(fields: [profileId], references: [id])
+  profileId           String?
+}
+
+model Message {
+  id         String        @id @default(uuid())
+  sender     Profile       @relation("MessagesSent", fields: [senderId], references: [id])
+  senderId   String
+  receiver   Profile       @relation("MessagesReceived", fields: [receiverId], references: [id])
+  receiverId String
+  content    String
+  status     MessageStatus @default(sent)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  deletedAt  DateTime?
+}
+
+model GroupChat {
+  id          String        @id @default(uuid())
+  name        String
+  description String?
+  createdBy   Profile       @relation("CreatedGroups", fields: [createdById], references: [id])
+  createdById String
+  maxMembers  Int           @default(50)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+  members     GroupMember[]
+  messages    ChatMessage[]
+}
+
+model GroupMember {
+  id        String    @id @default(uuid())
+  group     GroupChat @relation(fields: [groupId], references: [id])
+  groupId   String
+  profile   Profile   @relation(fields: [profileId], references: [id])
+  profileId String
+  joinedAt  DateTime  @default(now())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([groupId, profileId])
+}
+
+model ChatMessage {
+  id        String    @id @default(uuid())
+  group     GroupChat @relation(fields: [groupId], references: [id])
+  groupId   String
+  sender    Profile   @relation(fields: [senderId], references: [id])
+  senderId  String
+  content   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model AIChat {
+  id         String    @id @default(uuid())
+  user       Profile   @relation(fields: [userId], references: [id])
+  userId     String
+  modelName  String
+  message    String
+  response   String
+  tokensUsed Int?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+}
+
+model Session {
+  id                String             @id @default(uuid())
+  therapist         Profile            @relation("TherapistSessions", fields: [therapistId], references: [id])
+  therapistId       String
+  patient           Profile            @relation("PatientSessions", fields: [patientId], references: [id])
+  patientId         String
+  scheduledAt       DateTime
+  durationMinutes   Int
+  status            String             @default("scheduled")
+  type              CallType
+  txRef             String?            @unique
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  deletedAt         DateTime?
+  sessionNote       SessionNote?
+  callLogs          CallLog[]
+  sessionRecordings SessionRecording[]
+}
+
+model SessionNote {
+  id        String    @id @default(uuid())
+  session   Session   @relation(fields: [sessionId], references: [id])
+  sessionId String    @unique
+  content   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model CallLog {
+  id              String    @id @default(uuid())
+  session         Session?  @relation(fields: [sessionId], references: [id])
+  sessionId       String?
+  caller          Profile   @relation("CallerLogs", fields: [callerId], references: [id])
+  callerId        String
+  receiver        Profile   @relation("ReceiverLogs", fields: [receiverId], references: [id])
+  receiverId      String
+  callType        CallType
+  startedAt       DateTime  @default(now())
+  endedAt         DateTime?
+  durationSeconds Int?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  user      Profile          @relation(fields: [userId], references: [id])
+  userId    String
+  type      NotificationType
+  title     String
+  content   String
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  deletedAt DateTime?
+}
+
+model ScheduledMessage {
+  id         String    @id @default(uuid())
+  sender     Profile   @relation("ScheduledSent", fields: [senderId], references: [id])
+  senderId   String
+  receiver   Profile   @relation("ScheduledReceived", fields: [receiverId], references: [id])
+  receiverId String
+  content    String
+  sendAt     DateTime
+  sent       Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+}
+
+model EmotionTracking {
+  id         String    @id @default(uuid())
+  user       Profile   @relation(fields: [userId], references: [id])
+  userId     String
+  emotion    MoodType
+  detectedAt DateTime  @default(now())
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+}
+
+model SessionRecording {
+  id        String    @id @default(uuid())
+  session   Session   @relation(fields: [sessionId], references: [id])
+  sessionId String
+  url       String
+  type      String // could be "video" or "audio"
+  duration  Int? // duration in seconds
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model Wallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  balance   Decimal  @default(0.00)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user Profile @relation(fields: [userId], references: [id])
+}
