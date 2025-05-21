@@ -3,145 +3,186 @@ import { getAuth } from "@clerk/express";
 import { prisma } from "../lib/prisma";
 import { createOrGetUser } from "../utils/createUser";
 
+// Helper to get internal patientId from Clerk userId
+async function getPatientIdFromClerkUserId(clerkUserId: string | undefined) {
+  if (!clerkUserId) return null;
+
+  const profile = await prisma.profile.findUnique({
+    where: { externalId: clerkUserId },
+  });
+
+  return profile?.id || null;
+}
+
 export const createJournalEntry = async (req: Request, res: Response) => {
-    const { userId } = getAuth(req);
-    if (!userId)  {
-        res.status(401).json({ error: "Unauthorized" });
-        return
-    }
+  const clerkUserId = req.auth?.userId;
+  if (!clerkUserId) {
+     res.status(401).json({ error: "Unauthorized" });
+     return
+  }
 
-    try {
-        const user = await createOrGetUser(userId);
+  const patientId = await getPatientIdFromClerkUserId(clerkUserId);
+  if (!patientId) {
+    res.status(404).json({ error: "User profile not found" });
+    return 
+  }
 
-        const { title, content, mood, tags = [], sharedWithTherapist = false, therapistId } = req.body;
+  try {
+    const user = await createOrGetUser(clerkUserId);
 
-        const entry = await prisma.journalEntry.create({
-            data: {
-                patientId: userId,
-                title,
-                content,
-                mood,
-                tags,
-                sharedWithTherapist,
-                therapistId: sharedWithTherapist ? therapistId : null,
-            },
-        });
+    const { title, content, mood, tags = [], sharedWithTherapist = false, therapistId } = req.body;
 
-        res.status(201).json(entry);
-    } catch (error: any) {
-        console.error("Create Journal Error:", error.message);
-        res.status(500).json({ error: "Failed to create journal entry" });
-    }
+    const entry = await prisma.journalEntry.create({
+      data: {
+        patientId,
+        title,
+        content,
+        mood,
+        tags,
+        sharedWithTherapist,
+        therapistId: sharedWithTherapist ? therapistId : null,
+      },
+    });
+
+    res.status(201).json(entry);
+  } catch (error: any) {
+    console.error("Create Journal Error:", error.message);
+    res.status(500).json({ error: "Failed to create journal entry" });
+  }
 };
 
 export const getMyJournalEntries = async (req: Request, res: Response) => {
-    const { userId } = getAuth(req);
-    if (!userId) {
-        res.status(401).json({ error: "Unauthorized" });
-        return
-    }
+  const clerkUserId = getAuth(req).userId;
+  if (!clerkUserId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return 
+  }
 
-    try {
-        const entries = await prisma.journalEntry.findMany({
-            where: {
-                patientId: userId,
-                deletedAt: null,
-            },
-            orderBy: { createdAt: "desc" },
-        });
+  const patientId = await getPatientIdFromClerkUserId(clerkUserId);
+  if (!patientId) {
+     res.status(404).json({ error: "User profile not found" });
+     return
+  }
 
-        res.json(entries);
-    } catch (error: any) {
-        console.error("Fetch Journals Error:", error.message);
-        res.status(500).json({ error: "Failed to fetch journal entries" });
-    }
+  try {
+    const entries = await prisma.journalEntry.findMany({
+      where: {
+        patientId,
+        deletedAt: null,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    res.json(entries);
+  } catch (error: any) {
+    console.error("Fetch Journals Error:", error.message);
+    res.status(500).json({ error: "Failed to fetch journal entries" });
+  }
 };
 
 export const getSingleJournalEntry = async (req: Request, res: Response) => {
-    const { userId } = getAuth(req);
-    const { id } = req.params;
-    if (!userId) {
-        res.status(401).json({ error: "Unauthorized" });
-        return
-    } 
+  const clerkUserId = getAuth(req).userId;
+  const { id } = req.params;
+  if (!clerkUserId) {
+   res.status(401).json({ error: "Unauthorized" });
+   return 
+  }
 
-    try {
-        const entry = await prisma.journalEntry.findFirst({
-            where: {
-                id,
-                patientId: userId,
-                deletedAt: null,
-            },
-        });
+  const patientId = await getPatientIdFromClerkUserId(clerkUserId);
+  if (!patientId) {
+    res.status(404).json({ error: "User profile not found" });
+    return 
+  }
 
-        if (!entry)  {
-            res.status(404).json({ error: "Journal entry not found" });
-            return
-        }
+  try {
+    const entry = await prisma.journalEntry.findFirst({
+      where: {
+        id,
+        patientId,
+        deletedAt: null,
+      },
+    });
 
-        res.json(entry);
-    } catch (error: any) {
-        console.error("Get Entry Error:", error.message);
-        res.status(500).json({ error: "Failed to fetch entry" });
+    if (!entry) {
+       res.status(404).json({ error: "Journal entry not found" });
+       return
     }
+
+    res.json(entry);
+  } catch (error: any) {
+    console.error("Get Entry Error:", error.message);
+    res.status(500).json({ error: "Failed to fetch entry" });
+  }
 };
 
 export const updateJournalEntry = async (req: Request, res: Response) => {
-    const { userId } = getAuth(req);
-    const { id } = req.params;
-    if (!userId) {
-        res.status(401).json({ error: "Unauthorized" });
-        return
-    } 
+  const clerkUserId = getAuth(req).userId;
+  const { id } = req.params;
+  if (!clerkUserId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return 
+  }
 
-    try {
-        const existing = await prisma.journalEntry.findFirst({
-            where: { id, patientId: userId },
-        });
+  const patientId = await getPatientIdFromClerkUserId(clerkUserId);
+  if (!patientId) {
+    res.status(404).json({ error: "User profile not found" });
+    return 
+  }
 
-        if (!existing) {
-            res.status(404).json({ error: "Entry not found" });
-            return
-        }
+  try {
+    const existing = await prisma.journalEntry.findFirst({
+      where: { id, patientId },
+    });
 
-        const { title, content, mood, tags, sharedWithTherapist, therapistId } = req.body;
-
-        const updated = await prisma.journalEntry.update({
-            where: { id },
-            data: {
-                title,
-                content,
-                mood,
-                tags,
-                sharedWithTherapist,
-                therapistId: sharedWithTherapist ? therapistId : null,
-            },
-        });
-
-        res.json(updated);
-    } catch (error: any) {
-        console.error("Update Entry Error:", error.message);
-        res.status(500).json({ error: "Failed to update journal entry" });
+    if (!existing) {
+      res.status(404).json({ error: "Entry not found" });
+      return 
     }
+
+    const { title, content, mood, tags, sharedWithTherapist, therapistId } = req.body;
+
+    const updated = await prisma.journalEntry.update({
+      where: { id },
+      data: {
+        title,
+        content,
+        mood,
+        tags,
+        sharedWithTherapist,
+        therapistId: sharedWithTherapist ? therapistId : null,
+      },
+    });
+
+    res.json(updated);
+  } catch (error: any) {
+    console.error("Update Entry Error:", error.message);
+    res.status(500).json({ error: "Failed to update journal entry" });
+  }
 };
 
 export const deleteJournalEntry = async (req: Request, res: Response) => {
-    const { userId } = getAuth(req);
-    const { id } = req.params;
-    if (!userId) {
-        res.status(401).json({ error: "Unauthorized" });
-        return
-    } 
+  const clerkUserId = getAuth(req).userId;
+  const { id } = req.params;
+  if (!clerkUserId) {
+   res.status(401).json({ error: "Unauthorized" });
+   return 
+  }
 
-    try {
-        await prisma.journalEntry.updateMany({
-            where: { id, patientId: userId },
-            data: { deletedAt: new Date() },
-        });
+  const patientId = await getPatientIdFromClerkUserId(clerkUserId);
+  if (!patientId) {
+    res.status(404).json({ error: "User profile not found" });
+    return 
+  }
 
-        res.json({ success: true });
-    } catch (error: any) {
-        console.error("Delete Entry Error:", error.message);
-        res.status(500).json({ error: "Failed to delete journal entry" });
-    }
+  try {
+    await prisma.journalEntry.updateMany({
+      where: { id, patientId },
+      data: { deletedAt: new Date() },
+    });
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error("Delete Entry Error:", error.message);
+    res.status(500).json({ error: "Failed to delete journal entry" });
+  }
 };

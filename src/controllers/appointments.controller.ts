@@ -8,42 +8,67 @@ import flw from "../utils/flutterwave";
 // Book a new session
 export const bookSession = async (req: Request, res: Response) => {
     try {
-        const { therapistId, patientId, scheduledAt, durationMinutes, type } = req.body;
-
-        const patientProfile = await createOrGetUser(patientId);
-
-        if (!patientProfile) {
-            res.status(400).json({ error: "Invalid patient information." });
-        }
-
-        const conflictingSession = await prisma.session.findFirst({
-            where: {
-                therapistId,
-                scheduledAt: new Date(scheduledAt),
-                status: { notIn: ["cancelled"] },
-            },
-        });
-
-        if (conflictingSession) {
-            res.status(409).json({ error: "Therapist already has a session at this time." });
-        }
-
-        const session = await prisma.session.create({
-            data: {
-                therapistId,
-                patientId: patientProfile.id,
-                scheduledAt: new Date(scheduledAt),
-                durationMinutes,
-                type,
-            },
-        });
-
-        res.status(201).json(session);
+      const patientId = req.auth?.userId;
+      if (!patientId) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+  
+      const { therapistId: externalTherapistId, scheduledAt, durationMinutes, type } = req.body;
+  
+      if (!externalTherapistId || !scheduledAt || !durationMinutes || !type) {
+        res.status(400).json({ error: "Missing required fields" });
+        return;
+      }
+  
+      const patientProfile = await createOrGetUser(patientId);
+      if (!patientProfile) {
+        res.status(400).json({ error: "Invalid patient information." });
+        return;
+      }
+  
+      // 🧠 LOOKUP: Convert Clerk therapist ID → internal therapist profile ID
+      const therapistProfile = await prisma.profile.findUnique({
+        where: { externalId: externalTherapistId },
+      });
+  
+      if (!therapistProfile) {
+        res.status(404).json({ error: "Therapist not found." });
+        return;
+      }
+  
+      // Check for conflicting session
+      const conflictingSession = await prisma.session.findFirst({
+        where: {
+          therapistId: therapistProfile.id,
+          scheduledAt: new Date(scheduledAt),
+          status: { notIn: ["cancelled"] },
+        },
+      });
+  
+      if (conflictingSession) {
+        res.status(409).json({ error: "Therapist already has a session at this time." });
+        return;
+      }
+  
+      // Book the session
+      const session = await prisma.session.create({
+        data: {
+          therapistId: therapistProfile.id,
+          patientId: patientProfile.id,
+          scheduledAt: new Date(scheduledAt),
+          durationMinutes,
+          type,
+        },
+      });
+  
+      res.status(201).json(session);
     } catch (error) {
-        console.error("Error booking session:", error);
-        res.status(500).json({ error: "Failed to book session" });
+      console.error("Error booking session:", error);
+      res.status(500).json({ error: "Failed to book session" });
     }
-};
+  };
+  
 
 // Update session status
 export const updateSession = async (req: Request, res: Response) => {
