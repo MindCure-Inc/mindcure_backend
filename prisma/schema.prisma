@@ -294,3 +294,19 @@ model Wallet {
 
   user Profile @relation(fields: [userId], references: [id])
 }
+
+model Transaction {
+  id          String   @id @default(cuid())
+  walletId    String
+  userId      String
+  amount      Decimal
+  type        String // e.g. 'topup', 'payment', 'refund'
+  status      String // e.g. 'pending', 'success', 'failed'
+  reference   String  @unique
+  meta        Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  wallet      Wallet   @relation(fields: [walletId], references: [id])
+  user        Profile  @relation(fields: [userId], references: [id])
+}

@@ -10,6 +10,7 @@ import journalRoutes from "./routes/journal.routes";
 import emotionRoutes from "./routes/emotion.routes"
 import walletRoutes from "./routes/wallet.routes"
 import therapistRoutes from "./routes/therapist.routes"
+// import chatRoutes from './routes/chat.routes';
 
 dotenv.config();
 
@@ -27,5 +28,6 @@ app.use("/api/journals",journalRoutes)
 app.use("/api/emotions", emotionRoutes)
 app.use("/api/wallet", walletRoutes)
 app.use("/api",therapistRoutes)
+// app.use('/api/chat', chatRoutes);
 
 export default app;

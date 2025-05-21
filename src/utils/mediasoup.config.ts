@@ -40,3 +40,23 @@ export const webRtcTransportOptions: types.WebRtcTransportOptions = {
   enableTcp: true,
   preferUdp: true,
 };
+
+export function setupMediasoupWorker() {
+  // TODO: Implement worker setup
+}
+
+export function getMediasoupRouter() {
+  // TODO: Implement router getter
+}
+
+export function createWebRtcTransport() {
+  // TODO: Implement transport creation
+}
+
+export function addProducer() {
+  // TODO: Implement producer addition
+}
+
+export function addConsumer() {
+  // TODO: Implement consumer addition
+}
