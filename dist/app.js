@@ -1,0 +1,34 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const express_2 = require("@clerk/express");
+const cors_1 = __importDefault(require("cors"));
+const dotenv_1 = __importDefault(require("dotenv"));
+const chatbot_routes_1 = __importDefault(require("./routes/chatbot.routes"));
+const appointments_routes_1 = __importDefault(require("./routes/appointments.routes"));
+const payment_routes_1 = __importDefault(require("./routes/payment.routes"));
+const sessionNote_routes_1 = __importDefault(require("./routes/sessionNote.routes"));
+const journal_routes_1 = __importDefault(require("./routes/journal.routes"));
+const emotion_routes_1 = __importDefault(require("./routes/emotion.routes"));
+const wallet_routes_1 = __importDefault(require("./routes/wallet.routes"));
+const therapist_routes_1 = __importDefault(require("./routes/therapist.routes"));
+// import chatRoutes from './routes/chat.routes';
+dotenv_1.default.config();
+const app = (0, express_1.default)();
+app.use((0, cors_1.default)());
+app.use(express_1.default.json());
+app.use((0, express_2.clerkMiddleware)());
+//routes
+app.use("/api", chatbot_routes_1.default);
+app.use("/api", appointments_routes_1.default);
+app.use("/api", payment_routes_1.default);
+app.use("/api/notes", sessionNote_routes_1.default);
+app.use("/api/journals", journal_routes_1.default);
+app.use("/api/emotions", emotion_routes_1.default);
+app.use("/api/wallet", wallet_routes_1.default);
+app.use("/api", therapist_routes_1.default);
+// app.use('/api/chat', chatRoutes);
+exports.default = app;

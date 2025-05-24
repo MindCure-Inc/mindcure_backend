@@ -1627,8 +1627,8 @@ export declare function getPrismaClient(config: GetPrismaClientConfig): {
 
 /**
  * Config that is stored into the generated client. When the generated client is
- * loaded, this same middleware is passed to {@link getPrismaClient} which creates a
- * closure with that middleware around a non-instantiated [[PrismaClient]].
+ * loaded, this same config is passed to {@link getPrismaClient} which creates a
+ * closure with that config around a non-instantiated [[PrismaClient]].
  */
 export declare type GetPrismaClientConfig = {
     runtimeDataModel: RuntimeDataModel;

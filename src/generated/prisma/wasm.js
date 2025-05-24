@@ -305,6 +305,19 @@ exports.Prisma.WalletScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.TransactionScalarFieldEnum = {
+  id: 'id',
+  walletId: 'walletId',
+  userId: 'userId',
+  amount: 'amount',
+  type: 'type',
+  status: 'status',
+  reference: 'reference',
+  meta: 'meta',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -385,7 +398,8 @@ exports.Prisma.ModelName = {
   ScheduledMessage: 'ScheduledMessage',
   EmotionTracking: 'EmotionTracking',
   SessionRecording: 'SessionRecording',
-  Wallet: 'Wallet'
+  Wallet: 'Wallet',
+  Transaction: 'Transaction'
 };
 
 /**

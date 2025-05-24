@@ -88,6 +88,7 @@ model Profile {
   journalEntriesAsPatient   JournalEntry[]     @relation("JournalPatient")
   journalEntriesAsTherapist JournalEntry[]     @relation("JournalTherapist")
   wallet                    Wallet?
+  transactions              Transaction[]
 }
 
 model TherapistDetail {
@@ -286,11 +287,28 @@ model SessionRecording {
 }
 
 model Wallet {
+  id           String        @id @default(cuid())
+  userId       String        @unique
+  balance      Decimal       @default(0.00)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  transactions Transaction[]
+
+  user Profile @relation(fields: [userId], references: [id])
+}
+
+model Transaction {
   id        String   @id @default(cuid())
-  userId    String   @unique
-  balance   Decimal  @default(0.00)
+  walletId  String
+  userId    String
+  amount    Decimal
+  type      String // e.g. 'topup', 'payment', 'refund'
+  status    String // e.g. 'pending', 'success', 'failed'
+  reference String   @unique
+  meta      Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user Profile @relation(fields: [userId], references: [id])
+  wallet Wallet  @relation(fields: [walletId], references: [id])
+  user   Profile @relation(fields: [userId], references: [id])
 }
