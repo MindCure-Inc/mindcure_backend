@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: mindcure-backend
+    env: node
+    buildCommand: npm run build
+    startCommand: npm start
+    plan: free
