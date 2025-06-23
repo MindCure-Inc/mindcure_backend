@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma";
-import { CallType } from '@prisma/client';
+import { CallType } from '../generated/prisma';
 
 /**
  * Creates a new call log entry

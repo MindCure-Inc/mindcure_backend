@@ -118,7 +118,8 @@
   },
   "include": [
     "src/**/*.ts",
-    "src/types/**/*.d.ts"
+    "src/types/**/*.d.ts",
+    "src/generated/prisma"
   ],
   "exclude": ["node_modules"],
   "typeRoots": ["./node_modules/@types", "./src/types"],

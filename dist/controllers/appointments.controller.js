@@ -18,6 +18,16 @@ const createUser_1 = require("../utils/createUser");
 const prisma_2 = require("../generated/prisma");
 var Decimal = prisma_2.Prisma.Decimal;
 const flutterwave_1 = __importDefault(require("../utils/flutterwave"));
+function getPatientIdFromClerkUserId(clerkUserId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (!clerkUserId)
+            return null;
+        const profile = yield prisma_1.prisma.profile.findUnique({
+            where: { externalId: clerkUserId },
+        });
+        return (profile === null || profile === void 0 ? void 0 : profile.id) || null;
+    });
+}
 // Book a new session
 const bookSession = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
@@ -191,8 +201,18 @@ const cancelSession = (req, res) => __awaiter(void 0, void 0, void 0, function* 
 exports.cancelSession = cancelSession;
 // Get all sessions for a user
 const getSessions = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const clerkUserId = (_a = req.auth) === null || _a === void 0 ? void 0 : _a.userId;
+    if (!clerkUserId) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+    }
+    const userId = yield getPatientIdFromClerkUserId(clerkUserId);
+    if (!userId) {
+        res.status(404).json({ error: "User profile not found" });
+        return;
+    }
     try {
-        const { userId } = req.query;
         const sessions = yield prisma_1.prisma.session.findMany({
             where: {
                 OR: [
