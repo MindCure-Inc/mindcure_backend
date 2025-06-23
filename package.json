@@ -1,6 +1,6 @@
 {
   "name": "mindcure_back",
-  "version": "1.0.0",
+  "version": "1.5.0",
   "main": "src/server.ts",
   "scripts": {
     "start": "node dist/server.js",
@@ -12,7 +12,7 @@
   "keywords": [],
   "author": "Karienye",
   "license": "ISC",
-  "description": "",
+  "description": "This is the brains behind MindCure a mental health app",
   "dependencies": {
     "@clerk/clerk-sdk-node": "^4.13.23",
     "@clerk/express": "^1.4.5",
