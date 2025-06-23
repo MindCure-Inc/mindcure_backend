@@ -5,6 +5,16 @@ import { Prisma } from "../generated/prisma";
 import Decimal = Prisma.Decimal;
 import flw from "../utils/flutterwave";
 
+async function getPatientIdFromClerkUserId(clerkUserId: string | undefined) {
+  if (!clerkUserId) return null;
+
+  const profile = await prisma.profile.findUnique({
+    where: { externalId: clerkUserId },
+  });
+
+  return profile?.id || null;
+}
+
 // Book a new session
 export const bookSession = async (req: Request, res: Response) => {
     try {
@@ -198,8 +208,19 @@ export const cancelSession = async (req: Request, res: Response) => {
 
 // Get all sessions for a user
 export const getSessions = async (req: Request, res: Response) => {
+    const clerkUserId = req.auth?.userId;
+    if (!clerkUserId) {
+       res.status(401).json({ error: "Unauthorized" });
+       return
+    }
+  
+    const userId = await getPatientIdFromClerkUserId(clerkUserId);
+    if (!userId) {
+      res.status(404).json({ error: "User profile not found" });
+      return 
+    }
+  
     try {
-        const { userId } = req.query;
 
         const sessions = await prisma.session.findMany({
             where: {
